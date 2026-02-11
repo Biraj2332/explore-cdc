@@ -1,0 +1,26 @@
+# Ignore environment variable files
+.env
+/node_modules
+/dist
+/build
+.DS_Store
+*.log
+.vscode/
+.idea/
+*.swp
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+/.next
+/out
+*.tsbuildinfo
+.cache/
+*.iml
+*.bak
+*.orig
+*.rej

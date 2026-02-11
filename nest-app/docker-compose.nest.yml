@@ -1,23 +1,24 @@
-version: '3.8'
-
 services:
   nestjs-consumer:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: nestjs-cdc
+    env_file:
+      - .env.docker
     environment:
-      - NATS_URL=nats://nats:4222
-      - CDC_SUBJECT=mydb.users
-      - NODE_ENV=production
-      - PORT=3000
+      - NATS_URL=${NATS_URL:-nats://nats:4222}
+      - CDC_SUBJECT=${CDC_SUBJECT:-mydb.users}
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT:-3000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     ports:
-      - "3000:3000"
+      - "${HOST_NESTJS_PORT:-3000}:3000"
     networks:
       - cdc-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-3000}/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -27,6 +28,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    depends_on:
+      nats:
+        condition: service_healthy
 
 networks:
   cdc-network:

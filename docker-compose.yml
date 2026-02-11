@@ -3,10 +3,10 @@ services:
     image: mysql:8.0
     container_name: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: mydb
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mydb}
     ports:
-      - "3307:3306"
+      - "${HOST_MYSQL_PORT:-3307}:3306"
     volumes:
       - ./mysql/conf.d:/etc/mysql/conf.d
     command: >
@@ -15,21 +15,45 @@ services:
       --log-bin=mysql-bin
       --binlog-format=ROW
       --binlog-row-image=FULL
-
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cdc-network
 
   nats:
     image: nats:2.10
     container_name: nats
     ports:
-      - "4222:4222"
-      - "8222:8222"
+      - "${HOST_NATS_PORT:-4222}:4222"
+      - "${HOST_NATS_MONITOR_PORT:-8222}:8222"
     command: ["-js"]
+    healthcheck:
+      test: ["CMD", "nats", "server", "check", "--address", "localhost:4222"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cdc-network
 
   debezium:
     build: .
     container_name: debezium
+    env_file:
+      - ./debezium.env
     depends_on:
-      - mysql
-      - nats
+      mysql:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
     ports:
-      - "8080:8080"
+      - "${HOST_DEBEZIUM_PORT:-8080}:8080"
+    networks:
+      - cdc-network
+
+networks:
+  cdc-network:
+    name: simple-cdc-project_default
+    driver: bridge
